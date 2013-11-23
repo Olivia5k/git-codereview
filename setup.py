@@ -1,16 +1,17 @@
 from distutils.core import setup
 
 setup(
-    name='git-eyeballs',
+    name='git-codereview',
     version='0.0.1',
-    url='https://github.com/thiderman/git-eyeballs',
+    url='https://github.com/thiderman/git-codereview',
     author='Lowe Thiderman',
     author_email='lowe.thiderman@gmail.com',
     description=('Code review for git, stored in the repository'),
     license='MIT',
-    packages=['eyeballs'],
+    packages=['codereview'],
     scripts=[
-        'bin/git-eyeballs'
+        'bin/git-codereview'
+        'bin/git-cr'
     ],
     classifiers=[
         'Development Status :: 2 - Pre-Alpha',

@@ -1,12 +1,12 @@
-# git-eyeballs
+# git-codereview
 
-**git-eyeballs** is a terminal based code review tool.  It stores review data in
-special branches inside of the repository.
+**git-codereview** is a terminal based code review tool.  It stores review data
+in special branches inside of the repository.
 
-**git-eyeballs** is written using [RDD][rdd].  If this very paragraph is still
-present when you read this, the RDD process is not yet complete and features
-described in this README might not have been implemented yet.  There might be
-dragons.
+**git-codereview** is written using [RDD][rdd].  If this very paragraph is
+still present when you read this, the RDD process is not yet complete and
+features described in this README might not have been implemented yet.  There
+might be dragons.
 
 ## Why?
 
@@ -27,21 +27,17 @@ dragons.
 
 `python setup.py install`
 
-Run `git eyeballs init` in a repository where you want to use it.
+Run `git codereview init` in a repository where you want to use it.
 
 ## Notes
 
-The name?
-
-*"Given enough eyeballs, all bugs are shallow."*
-
 The current implementation interacts with git via the git binary.  This is
 possibly suboptimal and a proper Python implementation should be considered.
-However, as of this writing, none of them support Python 3, and that's
-a dealbreaker.
+However, as of this writing, none of those I've looked at support Python 3, and
+that's a dealbreaker.
 
 ## License
 
-**git-eyeballs** is licensed under the MIT license.
+**git-codereview** is licensed under the MIT license.
 
 [rdd]: http://tom.preston-werner.com/2010/08/23/readme-driven-development.html
