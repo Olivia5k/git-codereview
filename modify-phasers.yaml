@@ -1,0 +1,12 @@
+from:
+  branch: devel
+  sha: c812f73498712e348761234876ff1239
+onto: master
+by: thiderman@spotify.com
+merged: true
+reviewers:
+  - xeago@spotify.com: 2
+  - tony@spotify.com: 0
+dates:
+  created: "2013-12-14 00:03:13 +0100"
+  merged: "2013-12-15 14:23:14 +0100"
