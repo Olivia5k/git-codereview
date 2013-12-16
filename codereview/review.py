@@ -62,7 +62,11 @@ class Runner(object):
             review = Review.load(content)
             self.reviews.append(review)
 
-        self.reviews = sorted(self.reviews, key=attrgetter('merged'))
+        self.reviews = sorted(
+            self.reviews,
+            key=attrgetter('open'),
+            reverse=True
+        )
 
     def git(self, *args):
         # print('git: {0}'.format(' '.join(args)))
@@ -83,7 +87,8 @@ class Review(object):
     def setup(self):
         self.__dict__.update(self.data)
         self.created = dateutil.parser.parse(self.data['dates']['created'])
-        self.merged = self.data['merged']
+        self.abandoned = self.__dict__.get('abandoned', False)
+        self.open = not (self.merged or self.abandoned)
 
     def new(self, branch, target):
         pass
@@ -114,6 +119,11 @@ class Review(object):
             data.append(
                 TERM.bright_black(', ') +
                 TERM.bold_green('MERGED')
+            )
+        elif self.abandoned:
+            data.append(
+                TERM.bright_black(', ') +
+                TERM.bold_red('ABANDONED')
             )
 
         data.append(TERM.bright_black(')'))
