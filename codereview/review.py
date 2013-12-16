@@ -1,6 +1,4 @@
-import sys
 import os
-import subprocess as sp
 import argparse
 import yaml
 import datetime
@@ -10,6 +8,8 @@ import pytz
 from blessings import Terminal
 from operator import attrgetter
 from babel.dates import format_timedelta
+
+from codereview import util
 
 TERM = Terminal()
 ARG_DEFAULTS = {
@@ -26,9 +26,7 @@ class Runner(object):
         self.config = {}
 
     def setup(self):
-        self.gitroot = self.get_git_root()
-
-        self.settings = os.path.join(self.gitroot, '.codereview.yaml')
+        self.settings = os.path.join(util.GIT_ROOT, '.codereview.yaml')
         self.has_settings = os.path.isfile(self.settings)
 
         if self.has_settings:
@@ -69,33 +67,14 @@ class Runner(object):
             'Wrote settings file {0}'.format(self.settings)
         )
 
-    def get_git_root(self):
-        if os.path.isdir('.git'):
-            return os.getcwd()
-
-        proc = sp.Popen(
-            ['git', 'rev-parse', '--git-dir'],
-            stdout=sp.PIPE,
-            stderr=sp.PIPE,
-        )
-        stdout, stderr = [x.decode() for x in proc.communicate()]
-
-        if stderr:
-            print(stderr)
-            sys.exit(128)
-
-        if stdout == '.git\n':
-            return os.getcwd()
-        return os.path.dirname(stdout.strip())
-
     def load_reviews(self):
-        files = self.git('ls-tree', '-r', self.branch, '--name-only')
+        files = util.git('ls-tree', '-r', self.branch, '--name-only')
 
         for f in files.strip().split('\n'):
             if not f:
                 continue
 
-            content = self.git('show', '{0}:{1}'.format(self.branch, f))
+            content = util.git('show', '{0}:{1}'.format(self.branch, f))
             review = Review.load(content)
             self.reviews.append(review)
 
@@ -104,16 +83,6 @@ class Runner(object):
             key=attrgetter('open'),
             reverse=True
         )
-
-    def git(self, *args):
-        # print('git: {0}'.format(' '.join(args)))
-        proc = sp.Popen(
-            ['git', '--git-dir={0}/.git'.format(self.gitroot)] + list(args),
-            stdout=sp.PIPE,
-            stderr=sp.PIPE,
-        )
-        stdout, stderr = [x.decode() for x in proc.communicate()]
-        return stdout
 
 
 class Review(object):
@@ -171,7 +140,7 @@ class Review(object):
         self.print_short(index)
         data = []
 
-        data.append('Added by {0}'.format(TERM.bold_cyan(self.by)))
+        data.append('Added by ' + Reviewer.get(self.by).nice())
 
         relative = format_timedelta(
             datetime.datetime.now(pytz.utc) - self.created
@@ -185,7 +154,7 @@ class Review(object):
         scores = []
         for email, score in self.reviewers.items():
             scores.append(
-                TERM.bold_cyan(email) +
+                Reviewer.get(email).nice() +
                 TERM.bright_black(': ')
             )
             if score >= 1:
@@ -202,6 +171,40 @@ class Review(object):
         data.append(''.join(scores))
 
         print(''.join(data))
+
+
+class Reviewer(object):
+    authors = {}
+
+    def __init__(self, email, name):
+        self.email = email
+        self.name = name
+
+    @staticmethod
+    def get(email):
+        if not Reviewer.authors:
+            # Fill the authors cache
+            Reviewer.authors = Reviewer.load_authors()
+
+        name = Reviewer.authors.get(email)
+        return Reviewer(email, name)
+
+    @staticmethod
+    def load_authors():
+        """
+        Use git log to find all contributors in the repo.
+
+        """
+
+        ret = {}
+        for token in util.git('log', '--format=%aE:::%aN').split('\n'):
+            email, name = token.split(':::')
+            ret[email] = name
+        return ret
+
+    def nice(self):
+        # Use the name if it's available, otherwise just use the email.
+        return TERM.bold_cyan(self.name if self.name else self.email)
 
 
 def setup_arguments():
