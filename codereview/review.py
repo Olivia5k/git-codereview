@@ -19,7 +19,7 @@ class Runner(object):
     def setup(self):
         self.gitroot = self.get_git_root()
 
-        with open('.codereview.yaml') as f:
+        with open(os.path.join(self.gitroot, '.codereview.yaml')) as f:
             self.__dict__.update(yaml.load(f))
 
     def list(self):
@@ -43,12 +43,15 @@ class Runner(object):
 
         if stdout == '.git\n':
             return os.getcwd()
-        return stdout
+        return os.path.dirname(stdout.strip())
 
     def load_reviews(self):
         files = self.git('ls-tree', '-r', self.branch, '--name-only')
 
         for f in files.strip().split('\n'):
+            if not f:
+                continue
+
             content = self.git('show', '{0}:{1}'.format(self.branch, f))
             review = Review.load(content)
             self.reviews.append(review)
@@ -58,7 +61,7 @@ class Runner(object):
     def git(self, *args):
         # print('git: {0}'.format(' '.join(args)))
         proc = sp.Popen(
-            ['git'] + list(args),
+            ['git', '--git-dir={0}/.git'.format(self.gitroot)] + list(args),
             stdout=sp.PIPE,
             stderr=sp.PIPE,
         )
