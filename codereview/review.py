@@ -12,18 +12,28 @@ from operator import attrgetter
 from babel.dates import format_timedelta
 
 TERM = Terminal()
+ARG_DEFAULTS = {
+    'strategy': ('merge', 'rebase'),
+    'branch': 'meta/review',
+    'scoring': 2,
+}
 
 
 class Runner(object):
-    def __init__(self):
+    def __init__(self, ns):
+        self.ns = ns
         self.reviews = []
         self.config = {}
 
     def setup(self):
         self.gitroot = self.get_git_root()
 
-        with open(os.path.join(self.gitroot, '.codereview.yaml')) as f:
-            self.__dict__.update(yaml.load(f))
+        self.settings = os.path.join(self.gitroot, '.codereview.yaml')
+        self.has_settings = os.path.isfile(self.settings)
+
+        if self.has_settings:
+            with open(self.settings) as f:
+                self.__dict__.update(yaml.load(f))
 
     def list(self):
         for x, review in enumerate(self.reviews, start=1):
@@ -31,6 +41,33 @@ class Runner(object):
 
     def show(self, index):
         self.reviews[index - 1].show(index)
+
+    def init(self):
+        """
+        Create the code review settings file and the special branch
+
+        """
+
+        if self.has_settings:
+            print(
+                TERM.bold_red('Error:'),
+                'Settings file already exists. Doing nothing.'
+            )
+            return
+
+        new_settings = {
+            'strategy': self.ns.strategy,
+            'branch': self.ns.branch,
+            'scoring': self.ns.scoring,
+        }
+
+        with open(self.settings, 'w') as f:
+            f.write(yaml.dump(new_settings, default_flow_style=False))
+
+        print(
+            TERM.bold_green('Yay!'),
+            'Wrote settings file {0}'.format(self.settings)
+        )
 
     def get_git_root(self):
         if os.path.isdir('.git'):
@@ -93,14 +130,14 @@ class Review(object):
     def new(self, branch, target):
         pass
 
+    def merge(self):
+        pass
+
     @staticmethod
     def load(content):
         review = Review(yaml.load(content))
         review.setup()
         return review
-
-    def merge(self):
-        pass
 
     def print_short(self, index):
         data = [
@@ -171,6 +208,30 @@ def setup_arguments():
     parser = argparse.ArgumentParser('codereview')
     subparsers = parser.add_subparsers(help="Core commands", dest="command")
 
+    init = subparsers.add_parser(
+        'init',
+        help="Start using code review for this repository"
+    )
+    init.add_argument(
+        '--branch',
+        help="Target meta branch to use",
+        default=ARG_DEFAULTS['branch'],
+        metavar='<branchname>',
+    )
+    init.add_argument(
+        '--scoring',
+        help="Scoring scale to use",
+        default=ARG_DEFAULTS['scoring'],
+        type=int,
+        metavar='<score>',
+    )
+    init.add_argument(
+        '--strategy',
+        help="Merge strategy to use",
+        default='merge',
+        choices=ARG_DEFAULTS['strategy'],
+    )
+
     subparsers.add_parser(
         'new',
         help="Create a new review"
@@ -196,12 +257,15 @@ def main():
     args = setup_arguments()
     ns = args.parse_args()
 
-    runner = Runner()
+    runner = Runner(ns)
     runner.setup()
 
     if not ns.command or ns.command == 'list':
         runner.load_reviews()
         runner.list()
+
+    if ns.command == 'init':
+        runner.init()
 
     if ns.command == 'show':
         runner.load_reviews()
