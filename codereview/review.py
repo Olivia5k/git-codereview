@@ -3,10 +3,13 @@ import os
 import subprocess as sp
 import argparse
 import yaml
+import datetime
 
 import dateutil.parser
+import pytz
 from blessings import Terminal
 from operator import attrgetter
+from babel.dates import format_timedelta
 
 TERM = Terminal()
 
@@ -121,7 +124,14 @@ class Review(object):
         self.print_short(index)
         data = []
 
-        data.append('\n')
+        data.append('Added by {0}'.format(TERM.bold_cyan(self.by)))
+
+        relative = format_timedelta(
+            datetime.datetime.now(pytz.utc) - self.created
+        )
+        data.append(TERM.bold_magenta(' {0} ago'.format(relative)))
+
+        data.append('\n\n')
         data.append(self.body.strip())
         data.append('\n\n')
 
